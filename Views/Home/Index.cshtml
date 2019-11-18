@@ -1,0 +1,111 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+<div class="jumbotron">
+    <h1>Northwind Traders</h1>
+    
+</div>
+
+<section class="container">
+    <div class="row">
+<div class="col-2">Choose Category: </div>
+        <div class="col-8">
+            <select id="categories" name="categories" class="form-control mw-100"></select>
+        </div>
+        <br />
+        <div class="col-2 text-left">
+            <button id="btnFetch" name="btnFetch" class="btn btn-outline-success w-100"> Fetch </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-8 offset-2 invisible">
+            <h3> List of Products </h3>
+            <span id="errorSpan" class="alert alert-danger invisible"></span>
+            <table id="productTable" class="table table-striped table-responsive ">
+                <thead>
+                    <tr>
+                        <th> Product Name </th>
+                        <th> Unit Price </th>
+                        <th> Stock Level </th>
+                        <th> Discontinued </th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+
+                </tbody>
+            </table>
+        </div>
+        </div>
+</section>
+
+@section scripts{
+    <script type="text/javascript">
+        //List the api url here
+        var url = "/api/CategoryProduct";
+        $(document).ready(function () {
+            $.ajax({
+                url: url,
+                method: "GET",
+                success: onSuccess,
+                error: onFailure
+            });
+
+            $("#btnFetch").on("click", function (event) {
+                event.stopPropagation(); //do not propogate this
+                // also prevent the default action
+                event.preventDefault();
+                var selectedCategory = $("#categories option:selected").val();
+                console.log(selectedCategory);
+                if (selectedCategory == '0') return;
+                $.ajax({
+                    url: `${url}/${selectedCategory}`,
+                    method: 'GET'
+                })
+                    .done(showProducts)             // onsuccess we are calling the fucn
+                    .fail(onFailure);
+               
+            });
+        });
+
+        function onSuccess(data) {
+            console.log(data);
+            $("#categories").empty();
+            $.each(data, function (index, value) {
+                var opt = "<option value=" + value.CategoryID + ">" + value.CategoryName + "</option>";
+            $(opt).appendTo("#categories");
+            });
+            $("<option value='0' selected> ---------- Select --------- </option>").prependTo("#categories");
+
+            console.log(" Updated categories to categories drop down. ");
+        }
+
+        function showProducts(data) {
+            console.log(data);
+            $("#errorSpan").addClass("invisible");
+            $("#productTable").parent("div").removeClass("invisible");
+            $("#tableBody").empty();
+            $.each(data, (i, v) => {
+                var row = `<tr><td>${v.ProductName}</td><td>${v.UnitPrice}</td>`;
+                row += `<td>${v.UnitsInStock}</td>`;
+                row += `<td><input type = 'checkbox' value ='${v.Discontinued}' />`;
+                row += `</td></tr>`;
+                $(row).appendTo("#tableBody");
+
+            });
+            //place a call for loading the cretae product view and paste the returned HTML 
+            //after the #productTable element
+            $.ajax({ url: '/home/createproduct', method: 'GET' })
+                .done(function (data) {
+                    $("#productTable").after(data);
+                });
+        }
+
+        function onFailure(err) {
+            $("#errorSpan").removeClass("invisible");
+            $("#errorSpan").html(err);
+            //console.error(err);
+        }
+    </script>
+    }
